@@ -1,0 +1,131 @@
+---
+title: "Logistic Regression - Predicting Diabetes Diagnosis"
+author: "Melchizedek Ackah-Blay"
+subtitle: "Date: "
+output: html_document
+---
+## Data Cleaning/Preparation
+In the data cleaning process, the first step was to import the diabetes dataset using the `read.csv()` function from the `tidyverse` library. This function loads the data into R for further processing. Next, I converted the height and weight variables to the International System of Units (SI units) to ensure consistency in measurements. This was achieved by multiplying the height variable by 0.0254 to convert inches to meters and multiplying the weight variable by 0.453592 to convert pounds to kilograms. After converting the height and weight variables, I calculated the Body Mass Index (BMI) using the formula BMI = weight (in kilograms) / (height^2 in meters). This step involved creating a new variable named BMI in the dataset, representing the calculated BMI for each observation.Following the calculation of BMI, I categorized the BMI variable into four categories: "underweight", "normal", "overweight", and "obese". This was accomplished using conditional statements. If the BMI was less than 18.5, the individual was categorized as "underweight". If the BMI fell between 18.5 and 25, the individual was categorized as "normal". For BMI values between 25 and 30, individuals were categorized as "overweight", and for BMI values exceeding 30, individuals were categorized as "obese". Any other values were coded as NA. Additionally, I recoded the insurance and smoking variables to reflect meaningful labels. For the insurance variable, the values were recoded from numerical values (0, 1, 2) to categorical labels ("none", "government", "private"). Similarly, for the smoking variable, numerical values (1, 2, 3) were recoded to categorical labels ("current", "never", "ex-smoker"). Finally, I conducted checks to ensure that the new variables were correctly coded. Summary statistics were generated for the converted height and weight variables, as well as for the calculated BMI. Frequency tables were created to examine the distribution of categories in the categorical BMI, insurance, and smoking variables, ensuring that the recoding process was accurately executed.
+
+```{r warning=FALSE, message=FALSE, results="hide"}
+
+library(tidyverse)
+
+# Importing dataset
+diabetes_data <- read.csv("diabetes.csv")
+
+# View dataset
+str(diabetes_data)
+
+# Convert height to SI units
+diabetes_data$height.si <- diabetes_data$height * 0.0254
+
+# Convert weight to SI units
+diabetes_data$weight.si <- diabetes_data$weight * 0.453592
+
+# Calculate BMI
+diabetes_data$BMI <- diabetes_data$weight.si / (diabetes_data$height.si^2)
+
+# Create categorical BMI variable using if-else statements
+diabetes_data$bmi_categorized <- ifelse(diabetes_data$BMI < 18.5, "underweight",
+                                        ifelse(diabetes_data$BMI >= 18.5 & diabetes_data$BMI <= 25, "normal",
+                                               ifelse(diabetes_data$BMI > 25 & diabetes_data$BMI <= 30, "overweight",
+                                                      ifelse(diabetes_data$BMI > 30, "obese", NA))))
+
+
+# Recode insurance variable
+diabetes_data$insurance <- factor(diabetes_data$insurance,  levels = c(0, 1, 2), labels = c("none", "government", "private"))
+
+# Recode smoking variable
+diabetes_data$smoking <- factor(diabetes_data$smoking, levels = c(1, 2, 3), labels = c("current", "never", "ex-smoker"))
+
+# Check variables
+summary(diabetes_data$height.si)
+summary(diabetes_data$weight.si)
+summary(diabetes_data$BMI)
+table(diabetes_data$bmi_categorized)
+table(diabetes_data$insurance)
+table(diabetes_data$smoking)
+
+
+```
+
+
+## Exploratory Data Analysis
+The dataset comprises a total of 403 observations. When examining the distribution of characteristics within this dataset, we find that 2.267003% of individuals fall into the category of obesity as categorized by their Body Mass Index (BMI). Additionally, 58.06452% of the dataset identifies as female. Regarding diabetes diagnosis, 84.61538% of individuals in the dataset have been diagnosed with diabetes. On average, individuals in this dataset are approximately 46.85112 years old. When considering their BMI, the average BMI among individuals is approximately 28.7874 (FOR PATIENTS WHO HAD BMI DATA). These metrics provide insights into the demographic composition and health characteristics of the population represented in the dataset.
+
+```{r warning=FALSE, message=FALSE, results="hide"}
+
+# number of observations
+num_observations <- nrow(diabetes_data)
+
+#cat("Number of observations:", num_observations, "\n")
+
+# Find the percentage of observations in each bmi_categorized category
+bmi_category_percentages <- prop.table(table(diabetes_data$bmi_categorized)) * 100
+
+# Find the percentage of observations in each gender category
+gender_percentages <- prop.table(table(diabetes_data$gender)) * 100
+
+# Find the percentage of observations in each diabetes category
+diabetes_percentages <- prop.table(table(diabetes_data$dm)) * 100
+
+# Find the average age of individuals in the dataset
+average_age <- mean(diabetes_data$age)
+
+# Find the average BMI of individuals in the dataset
+average_bmi <- mean(diabetes_data$BMI, na.rm = TRUE)
+
+```
+
+
+## Data Visualization
+In the first visualization, the frequency distribution of different insurance categories is depicted. Each bar represents the count of individuals belonging to a specific insurance category. We observe that the majority of individuals have private insurance, followed by government insurance, with the least number of individuals having no insurance coverage. In the second visualization, we see the distribution of smoking status among the dataset. The bars represent the count of individuals categorized as current smokers, never smokers, and ex-smokers. It's evident that a significant portion of individuals in the dataset are categorized as never smokers, while the counts for current smokers and ex-smokers are notably lower. In the third visualization presents a scatter plot illustrating the relationship between BMI (Body Mass Index) and cholesterol levels. Each point on the plot represents an individual's BMI and corresponding cholesterol level. The blue regression line indicates the overall trend in the data, showing how cholesterol levels change with varying BMI values. The positive slope of the regression line suggests a positive association between BMI and cholesterol levels, indicating that as BMI increases, cholesterol levels tend to increase as well. Additionally, the correlation coefficient between BMI and cholesterol is calculated and indicates the strength and direction of the linear relationship between these variables. 
+ Finally, in the fourth visualization, we observe the distribution of ages among individuals in the dataset through a histogram. The x-axis represents age intervals, and the y-axis represents the frequency ofindividuals falling within each interval. The histogram provides insights into the age distribution of the dataset, showing which age groups are most prevalent among the individuals.
+ 
+```{r warning=FALSE, message=FALSE}
+library(ggplot2)
+
+# Frequency of each labeled category of the insurance variable
+ggplot(diabetes_data, aes(x = insurance)) + geom_bar(fill = "skyblue") +
+  labs(title = "Frequency of Insurance Categories", x = "Insurance Category", y = "Frequency") +
+  theme_minimal()
+
+# Frequency of each labeled category of the smoking variable
+ggplot(diabetes_data, aes(x = smoking)) + geom_bar(fill = "salmon") +
+  labs(title = "Frequency of Smoking Categories", x = "Smoking Category", y = "Frequency") +
+  theme_minimal()
+
+# Figure 3: Scatter plot of BMI (independent variable) and cholesterol (dependent variable) with regression line
+ggplot(diabetes_data, aes(x = BMI, y = chol)) + geom_point(color = "darkgreen") + geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Relationship between BMI and Cholesterol of Patients", x = "BMI", y = "Cholesterol") +
+  theme_minimal()
+
+# correlation coefficient between BMI and cholesterol
+correlation <- cor(diabetes_data$BMI, diabetes_data$chol, use = "complete.obs")
+
+# Histogram of the age variable with binwidth of 5
+ggplot(diabetes_data, aes(x = age)) + geom_histogram(binwidth = 5, fill = "pink", color = "black") +
+  labs(title = "Age Distribution of Paitents", x = "Age", y = "Frequency") +
+  theme_minimal()
+
+
+```
+
+## Logistic Regression Results
+Regarding age, for every one-year increase in age, the log-odds of having diabetes (dm) increase by 0.055454, holding all other variables constant. Regarding BMI, for every one-unit increase in BMI (kg/m^2), the log-odds of having diabetes (dm) increase by 0.073879, holding all other variables constant. Regarding gender, the coefficient indicates the difference in the log-odds of having diabetes between males and females, holding all other variables constant. If an individual is male (compared to being female), the log-odds of having diabetes increase by 0.244852.
+
+```{r warning=FALSE, message=FALSE, results="hide"}
+
+# Convert gender to a factor
+diabetes_data$gender <- factor(diabetes_data$gender)
+
+# Build logistic regression model
+logit_model <- glm(dm ~ age + gender + BMI, data = diabetes_data, family = "binomial")
+
+# Summarize the model
+summary(logit_model)
+
+
+```
+
